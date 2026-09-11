@@ -10,6 +10,7 @@ Créer une nouvelle base de données nommée `livrai`
 Appliquer le script SQL db/init-script.sql
 
 ## Lancement du serveur
+
 Télécharger Eclipse (un jdk > 6 est nécessaire)
 
 Importer le projet Maven dans Eclipse.

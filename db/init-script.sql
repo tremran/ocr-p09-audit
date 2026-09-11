@@ -1,4 +1,6 @@
-CREATE DATABASE livrai;
+CREATE DATABASE if not exists livrai;
+
+use livrai;
 
 CREATE TABLE user (
   id INT AUTO_INCREMENT PRIMARY KEY,
