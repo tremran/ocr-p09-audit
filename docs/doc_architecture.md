@@ -1,23 +1,235 @@
-<!-- 
-- but : refonte technique
-    - attention à la dette technique
-    - implémentation
-    - penser à la phase de transition
-    - sert de base au DDA - Data Driven Architecture
-        - stack techno
-        - diagramme 
-exo 2 : faire le DDA
-- type d'architecture cible
--->
+# Document d'architecture CRM livrai
 
-# Audit application CRM livrai
+## Contexte du projet
 
-## Contexte et périmètre
-
-### Contexte
+### Besoins
 
 Livrai utilise une application basique pour la gestion de livraisons.
 La croissance actuelle de l'entreprise atteint les limites de l'application.
+
+Lors de l'audit des limitations ont été relevées et classées par priorité.
+
+Livrai souhaite faire évoluer l'application afin que les clients soient entièrement autonome et qu'elle soit utilisable par les services commerciaux et livraison.
+
+### Objectifs
+
+Pour rappel les risques suivants ont été recensés
+
+| Evénement | Probabilité | Impact | Risque |  
+| --- | --- | --- | --- | 
+| Crashs réguliers de l'application | 5 | 5 | 25 |
+| Récupération des mots de passe en BDD | 4 | 5 | 20 | 
+| Régressions fonctionnelles | 3 | 4 | 16 |
+| Saisie / lecture de données incohérentes | 4 | 4 | 16 |
+| Accès à des pages non prévues par les clients | 3 | 5 | 15 |
+
+Le refonte de l'application aura pour but d'améliorer :
+
+- sa sécurité
+- sa disponibilité
+- sa résilience à la charge
+- l'expérience utilisateur
+
+
+- priorité urgente :
+    - hasher les mots de passes
+    - externaliser les mots de passes d'accès à la BDD
+    - corriger les bogues
+- priorité haute :
+    - fermer les connexions à la BDD et / ou utiliser un pool de connexion
+- priorité moyenne :
+    - ajouter une pagination sur les pages de liste
+    - ajout de tests automatisés
+    - ajout de logs
+- priorité basse :
+    - dockeriser l'application
+    - création d'une pipeline CI/CD
+
+
+### Elements hors périmètre
+
+<!-- 
+Exclure si nécessaire certains aspects pour que le projet reste raisonnable. 
+
+Indiquer éventuellement de possibles améliorations qui ne peuvent pas être traitées dans ce projet.
+ -->
+
+Les points suivants ne seront pas traités :
+
+- notifications : besoin non urgent
+- application mobile : une seule application web et responsive sera traitée dans ce document
+
+## Description fonctionnelle
+
+3 types d'utilisateurs pourront se utiliser l'application
+
+- Client
+- Service Commercial
+- Service Livraison
+
+### Liste des fonctionnalités
+
+### Fonctionnemnet de l'application
+
+<!-- Inclure un diagramme UML fonctionnel (de cas d’utilisation). -->
+
+### Diagramme des cas d'utilisations
+
+#### Utilisateur non connecté
+
+```plantuml
+@startuml
+:User: as u
+
+package "S'authentifier" as auth {
+    usecase "se connecter" as login
+    usecase "se déconnecter" as logout
+} 
+
+package "gérer les clients" as customer {
+    usecase "Créer un compte client" as signin
+} 
+u -up-> auth
+u --> signin
+``` 
+
+#### Client
+
+```plantuml
+@startuml
+:Client: as c
+
+package "gérer les clients" as customer {
+    usecase "lister" as customer_list
+    usecase "modifier ses informations personnelles" as customer_personal
+} 
+
+package "gérer les livraisons" {
+    rectangle "vue client" as delivery_user {
+        usecase "créer" as delivery_create
+        usecase "lister" as delivery_list
+        usecase "voir l'historique de ses livraisons" as delivery_history
+    } 
+} 
+
+c -left-> customer
+c --> delivery_user
+``` 
+
+#### Service commercial
+
+```plantuml
+@startuml
+:Commercial: as c
+
+package "gérer les clients" as customer {
+    usecase "lister" as customer_list
+    usecase "modifier les informations personnelles" as customer_personal
+    usecase "gérer un compte client" as customer_manage
+    usecase "créer un compte client" as signin
+} 
+
+package "gérer les livraisons" {
+    rectangle "vue commercial" as delivery_commercial {
+        usecase "lister" as delivery_list
+        usecase "voir l'historique des livraisons" as delivery_history
+    } 
+} 
+
+package "facturation" {
+    rectangle "vue commercial" as bill_commercial {
+        usecase "voir l'historique des livraisons" as bill_history
+    } 
+} 
+
+c -left-> customer
+c -up-> delivery_commercial
+c --> bill_commercial
+``` 
+
+#### Service livraison
+
+```plantuml
+@startuml
+:Livraison: as c
+
+package "gérer les livraisons" as delivery {
+    rectangle "vue livraison" as delivery_livraison {
+        usecase "Valider une livraison" as delivery_validate
+        usecase "Mettre à jour une livraison" as delivery_udpate
+    } 
+} 
+
+package "facturation" as bill {
+    rectangle "vue livraison" as bill_livraison {
+        usecase "Créer" as bill_create
+        usecase "Emettre" as bill_send
+    } 
+} 
+
+c --> delivery
+c -left-> bill_livraison
+``` 
+
+## Description technique
+
+<!-- 
+Présenter l’ensemble des technologies utilisées.
+Inclure un diagramme UML de l’architecture (des composants).
+ -->
+
+### Diagramme de composant
+
+
+```plantuml
+@startuml
+[navigateur web] as browser
+component Serveur {
+    port "80/443" as port_web
+    database mysql 
+    node tomcat {
+        package Livrai <<war>> as app {
+            [AuthenticationFilter] as auth_filter
+            [Controller] <<servlet>> as cont
+            package DAL {
+                [Abstract DAO] as DAO
+            }
+            [View] <<jsp>> as view
+        }
+    }
+}
+
+DAO --> mysql
+browser --> port_web : requete http
+port_web --> auth_filter
+auth_filter --> cont
+cont --> [DAO]
+cont --> view
+view --> port_web 
+port_web --> browser : réponse http
+``` 
+
+### Diagramme enité relation
+
+```mermaid
+
+erDiagram
+    User { 
+    }
+    Customer {
+
+    }
+    Delivery {
+
+    }
+    Invoice {
+
+    }
+    Delivery_history {
+        
+    }
+```
+---------
 
 ### Périmètre
 
@@ -404,7 +616,6 @@ De plus des actions sont conseillées par ordre de priorité
 - priorité haute :
     - fermer les connexions à la BDD et / ou utiliser un pool de connexion
 - priorité moyenne :
-    - ajouter une pagination sur les pages de liste
     - ajout de tests automatisés
     - ajout de logs
 - priorité basse :
