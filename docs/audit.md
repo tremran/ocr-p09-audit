@@ -1,16 +1,5 @@
-<!-- 
-- but : refonte technique
-    - attention à la dette technique
-    - implémentation
-    - penser à la phase de transition
-    - sert de base au DDA - Data Driven Architecture
-        - stack techno
-        - diagramme 
-exo 2 : faire le DDA
-- type d'architecture cible
--->
-
 # Audit application CRM livrai
+<div style="page-break-after: always;"></div>
 
 ## Contexte et périmètre
 
@@ -31,6 +20,8 @@ Il permettra de répondre aux questions suivantes, l'application :
 1. est bien concue ?
 1. est scalable ( supporter une grosse volumétrie ) ?
 1. est résiliente ( continuité de service ) ?
+
+<div style="page-break-after: always;"></div>
 
 ## Fonctionnalités
 
@@ -99,6 +90,8 @@ refused - -> [*]
 
 ![Diagramme d'état](./img/state_diagram.png)
 
+<div style="page-break-after: always;"></div>
+
 ## Expérience utilisateur
 
 ### Forces
@@ -112,6 +105,8 @@ refused - -> [*]
 - pas de vérification des données saisies ( ex : poids négatif )
 - le refus d'une livraison n'est pas fonctionnel
 - pas de message de confirmation après une action ( création / validation de livraison )
+
+<div style="page-break-after: always;"></div>
 
 ## Description technique
 
@@ -129,6 +124,8 @@ Inclure les versions de langages et de frameworks utilisées
 | Tomcat | 8.5 | Serveur web |
 | Maven | | Outils de build | 
 | MySQL | 8 | Persistence des données |
+
+<div style="page-break-after: always;"></div>
 
 ### Diagramme de composants
 <!-- 
@@ -167,8 +164,6 @@ port_web -- > browser : réponse http
 
 #### Points forts
 
-> TODO : préciser pourquoi c'est un point fort  
-> 
 - Architecture MVC en place
     - Base de code solide pour l'évolution de l'application
 - Worflow d'une livraison défini
@@ -361,17 +356,9 @@ Solution proposée :
 
 - Protéger l'accès aux pages selon le type d'utilisateur
 
+<div style="page-break-after: always;"></div>
+
 ## Conclusion
-
-> TODO : répondre aux questions de l'intro
-
-
-1. rempli sa fonction ?
-1. a des bogues ?
-1. est sécurisée ?
-1. est bien concue ?
-1. est scalable ( supporter une grosse volumétrie ) ?
-1. est résiliente ( continuité de service ) ?
 
 L'application 
 
@@ -387,10 +374,8 @@ L'application
 - n'est pas scalable
 - n'est pas résiliente
 
-
 Cependant elle
 
-- n'est pas suffisamment sécurisée
 - ne pourra pas supporter la croissance prévue de l'entreprise
 - n'est et ne pourra pas être hautement disponible
 

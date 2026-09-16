@@ -1,5 +1,7 @@
 # Document d'architecture CRM livrai
 
+<div style="page-break-after: always;"></div>
+
 ## Contexte du projet
 
 ### Besoins
@@ -59,6 +61,9 @@ Les points suivants ne seront pas traités :
 - notifications : besoin non urgent
 - application mobile : une seule application web et responsive sera traitée dans ce document
 
+
+<div style="page-break-after: always;"></div>
+
 ## Description fonctionnelle
 
 3 types d'utilisateurs pourront se utiliser l'application
@@ -73,10 +78,11 @@ Les points suivants ne seront pas traités :
 
 <!-- Inclure un diagramme UML fonctionnel (de cas d’utilisation). -->
 
-### Diagramme des cas d'utilisations
+<div style="page-break-after: always;"></div>
 
 #### Utilisateur non connecté
 
+<!-- 
 ```plantuml
 @startuml
 :User: as u
@@ -90,17 +96,20 @@ package "gérer les clients" as customer {
     usecase "Créer un compte client" as signin
 } 
 u -up-> auth
-u --> signin
-``` 
+u -- > signin
+```  -->
+
+![User - Diagramme Use case ](./img/cible_uc_user.png)
+
+<div style="page-break-after: always;"></div>
 
 #### Client
-
+<!-- 
 ```plantuml
 @startuml
 :Client: as c
 
 package "gérer les clients" as customer {
-    usecase "lister" as customer_list
     usecase "modifier ses informations personnelles" as customer_personal
 } 
 
@@ -113,11 +122,15 @@ package "gérer les livraisons" {
 } 
 
 c -left-> customer
-c --> delivery_user
-``` 
+c -- > delivery_user
+```  -->
+
+![Client - Diagramme UC](./img/cible_uc_customer.png)
+
+<div style="page-break-after: always;"></div>
 
 #### Service commercial
-
+<!-- 
 ```plantuml
 @startuml
 :Commercial: as c
@@ -138,25 +151,28 @@ package "gérer les livraisons" {
 
 package "facturation" {
     rectangle "vue commercial" as bill_commercial {
-        usecase "voir l'historique des livraisons" as bill_history
+        usecase "créer" as bill_create
     } 
 } 
 
 c -left-> customer
 c -up-> delivery_commercial
-c --> bill_commercial
-``` 
+c -- > bill_commercial
+```  -->
+
+![Service commercial - Diagramme UC](./img/cible_uc_sales.png)
+<div style="page-break-after: always;"></div>
 
 #### Service livraison
-
+<!-- 
 ```plantuml
 @startuml
 :Livraison: as c
 
 package "gérer les livraisons" as delivery {
     rectangle "vue livraison" as delivery_livraison {
-        usecase "Valider une livraison" as delivery_validate
-        usecase "Mettre à jour une livraison" as delivery_udpate
+        usecase "Valider" as delivery_validate
+        usecase "Mettre à jour" as delivery_udpate
     } 
 } 
 
@@ -167,9 +183,101 @@ package "facturation" as bill {
     } 
 } 
 
-c --> delivery
+c -- > delivery
 c -left-> bill_livraison
-``` 
+```  -->
+
+![Livraison - Diagramme UC](./img/cible_uc_delivery.png)
+
+<div style="page-break-after: always;"></div>
+
+## Plan de migration
+
+Les résultats de l'audit ont permis de recenser les éléments techniques et fonctionnels qui doivent être corrigés avant que l'application puisse évoluer sereinement. Le plan ci-dessous reprend ces points et les organise par priorité afin d'assurer une refonte progressive et maîtrisée.
+
+### Priorité 1 - Sécurisation et stabilisation du système
+
+#### 1. Sécuriser les accès et les données sensibles
+
+- Hasher les mots de passe des utilisateurs avec un algorithme robuste (BCrypt ou Argon2).
+- Supprimer toute donnée sensible des sources de code et des fichiers versionnés.
+- Externaliser les identifiants de connexion à la base de données via des variables d'environnement ou un gestionnaire de secrets.
+- Mettre en place une politique de mot de passe et un contrôle d'accès par rôle.
+- Ajouter des mécanismes de protection contre les attaques CSRF et le brute force.
+
+#### 2. Corriger les vulnérabilités fonctionnelles et de sécurité
+
+- Valider les données saisies avant insertion ou mise à jour
+- Contrôler les droits d'accès aux ressources selon le profil utilisateur
+- Vérifier les flux de navigation et les accès aux routes non autorisées
+- Ajouter des logs pour les actions sensibles et les erreurs d'authentification
+
+#### 3. Corriger la cause de la saturation de la base de données
+
+- Fermer explicitement chaque connexion JDBC après usage
+- Utiliser un pool de connexions pour limiter les fuites de ressources
+- Contrôler la consommation de connexions sur les pages de listing
+- Surveiller la durée d'exécution des requêtes pour éviter les erreurs de saturation
+
+### Priorité 2 - Qualité fonctionnelle et expérience utilisateur
+
+#### 1. Corriger les bogues existants
+
+- Corriger l'affichage des livraisons passées et la présence des colonnes manquantes
+- Rendre fonctionnel le refus d'une livraison
+- Vérifier les statuts de livraison et leur cohérence dans le workflow
+
+#### 2. Améliorer les interactions utilisateur
+
+- Ajouter des messages de confirmation après une création, une validation ou un refus
+- Ajouter des messages d'erreur explicites sur les validations métier
+- Assurer un retour utilisateur cohérent pour chaque action
+
+### Priorité 3 - Qualité logicielle et évolutivité
+
+#### 1. Ajouter des tests automatisés
+
+- Mettre en place des tests unitaires sur les méthodes métier
+- Ajouter des tests d'intégration pour les contrôleurs et la couche DAO
+- Créer des tests de régression sur les parcours critiques de l'application
+
+#### 2. Gérer la volumétrie et la performance
+
+- Implémenter la pagination des listes de livraisons et de clients
+- Optimiser les requêtes SQL pour éviter les temps de chargement excessifs
+- Ajouter un mécanisme de monitoring des temps de réponse et des erreurs
+
+#### 3. Garantir la traçabilité des actions
+
+- Stocker les dates de création, validation et clôture des livraisons
+- Conserver l'historique des états et des actions effectuées par les utilisateurs
+
+### Priorité 4 - Industrialisation et maintenance
+
+#### 1. Préparer le déploiement
+
+- Mise en place d'une pipeline CI/CD
+- Automatisation de la compilation, des tests et du déploiement
+- Documentation des procédures d'installation et de maintenance
+
+#### 2. Préparer la montée en charge
+
+- Conteneuriser l'application
+- Orchestrer l'application pour la améliorer la scalabilité, la disponibilité et la performance
+
+### Critères de réussite du plan de refonte
+
+La refonte sera considérée comme réussie lorsque :
+
+- les mots de passe ne sont plus stockés en clair
+- les accès sont contrôlés selon les rôles
+- les connexions à la base de données sont correctement gérées
+- les bogues fonctionnels critiques sont corrigés
+- les données sont validées et contrôlées
+- les tests automatisés couvrent les scénarii principaux
+- la solution peut évoluer sans dégradation majeure de performance
+
+<div style="page-break-after: always;"></div>
 
 ## Description technique
 
@@ -178,447 +286,403 @@ Présenter l’ensemble des technologies utilisées.
 Inclure un diagramme UML de l’architecture (des composants).
  -->
 
+### Architecture cible recommandée
+
+Pour répondre aux risques identifiés dans l'audit, l'architecture cible retenue est une architecture distribuée légère, avec un découpage fonctionnel par domaine métier. Cette solution permet de :
+
+- sécuriser les accès via un point d'entrée unique
+- répartir les responsabilités métier entre plusieurs services
+- améliorer la disponibilité et la résilience
+- préparer la montée en charge sans multiplier les couplages techniques
+
+Les services principaux seraient :
+
+- Service d'authentification : connexion, déconnexion, gestion des rôles et permissions
+- Service client : gestion des profils, comptes et informations personnelles
+- Service livraison : création, suivi, validation et refus des livraisons
+- Service facturation : génération de factures et historique de facturation
+- Broker de messages : évènements métier tels que création de livraison, validation, génération de facture
+- Observabilité : centralisation des logs, métriques et traces
+
+Cette cible est cohérente avec le contexte de Livrai, car elle reste suffisamment simple pour être mise en place progressivement tout en couvrant les risques de sécurité et de disponibilité relevés lors de l'audit.
+
+<div style="page-break-after: always;"></div>
+
 ### Diagramme de composant
-
-
+<!-- 
 ```plantuml
 @startuml
-[navigateur web] as browser
-component Serveur {
-    port "80/443" as port_web
-    database mysql 
-    node tomcat {
-        package Livrai <<war>> as app {
-            [AuthenticationFilter] as auth_filter
-            [Controller] <<servlet>> as cont
-            package DAL {
-                [Abstract DAO] as DAO
-            }
-            [View] <<jsp>> as view
-        }
-    }
+
+component "Navigateur web" as browser
+component "Front App" as front
+component "API Gateway" as gateway
+
+node "Services" as services {
+    component "Auth Service" as auth
+    component "Customer Service" as customer
+    component "Delivery Service" as delivery
+    component "Billing Service" as billing
 }
+component "Message Broker" as broker
 
-DAO --> mysql
-browser --> port_web : requete http
-port_web --> auth_filter
-auth_filter --> cont
-cont --> [DAO]
-cont --> view
-view --> port_web 
-port_web --> browser : réponse http
-``` 
+database "PostgreSQL" as db
+component "Monitoring" as observability
 
-### Diagramme enité relation
+browser -- > front
+front -- > gateway
 
-```mermaid
+gateway -- > services
 
-erDiagram
-    User { 
-    }
-    Customer {
-
-    }
-    Delivery {
-
-    }
-    Invoice {
-
-    }
-    Delivery_history {
-        
-    }
-```
----------
-
-### Périmètre
-
-Cet audit va faire un état des lieux de l'application Livrai et servira de base pour concevoir la nouvelle architecture de l'application.
-
-Il permettra de répondre aux questions suivantes, l'application :
-
-1. rempli sa fonction ?
-1. a des bogues ?
-1. est sécurisée ?
-1. est bien concue ?
-1. est scalable ( supporter une grosse volumétrie ) ?
-1. est résiliente ( continuité de service ) ?
-
-## Fonctionnalités
-
-<!-- 
-TODO Fournissez un diagramme UML fonctionnel : soit de cas d’utilisation, soit d’activité, soit de séquences 
--->
-### Diagramme de cas d'utilisation
-
-<!-- 
-```plantuml
-@startuml
-:Admin: as a
-:Client: as c
-:User: as u
-u <|-- a
-u <|-- c
-
-package "S'authentifier" as auth {
-    usecase "se connecter" as login
-    usecase "se déconnecter" as logout
-} 
-
-package "gérer les livraisons" {
-    rectangle "vue admin"  as delivery_admin {
-        usecase "accepter"
-        usecase "refuser"
-        usecase "facturer"
-    }
-
-    rectangle "vue user" as delivery_user {
-        usecase "créer" as delivery_create
-        usecase "lister" as delivery_list
-    } 
-} 
-package "gérer les clients" as customer {
-    usecase "lister" as customer_list
-    usecase "créer"
-} 
+services -right-> db
+services -- > broker
 
 
-a -left-> customer
-a -- > delivery_admin
-c -- > delivery_user
-u -up-> auth
-``` 
--->
-
-![Diagramme des use case](./img/use_case_diagram.png)
-
-### Diagramme d'état d'une livraison
-<!-- 
-```plantuml
-@startuml
-state "en attente" as pending
-state "accepté" as accepted
-state "refusé" as refused
-state "terminé" as invoiced
-
-[*] -> pending
-pending - -> accepted
-accepted -> invoiced
-invoiced -> [*]
-pending -> refused
-refused - -> [*]
+observability -up-> broker
+@enduml
 ``` -->
 
-![Diagramme d'état](./img/state_diagram.png)
+![Diagramme de composant cible](./img/cible_component_diagram.png)
+### Exemples de stack technologique
 
-## Expérience utilisateur
+Le tableau ci-dessous propose plusieurs options technologiques, en fonction du niveau de maturité visé et du contexte de l'équipe projet.
 
-### Forces
+| Composant | Option 1 - Recommandée | Option 2 |  Pourquoi |
+| --- | --- | --- | --- |
+| Front App | Angular | React + TypeScript |  Interface web légère, ergonomique et évolutive |
+| API Gateway | Spring Cloud Gateway | NGINX + API logic | Point d'entrée unique, sécurisation et routage |
+| Auth Service | Java Spring Boot | Node.js / NestJS | Gestion des comptes, sessions et permissions |
+| Customer Service | Java Spring Boot | Node.js / NestJS | Gestion des profils clients et données personnelles |
+| Delivery Service | Java Spring Boot | Node.js / NestJS | Workflow des livraisons, validation et statut |
+| Billing Service | Java Spring Boot | Node.js / NestJS | Génération de factures et historique |
+| Message Broker | RabbitMQ | Kafka | Événements métier asynchrones et découplage |
+| Base de données | PostgreSQL | MariaDB | Données transactionnelles, cohérence et robustesse |
+| Monitoring | ELK Stack | Prometheus + Grafana | Suivi des performances, logs et traçabilité |
+| CI/CD | GitHub Actions | GitLab CI |  Intégration continue et déploiement automatisé |
+| Conteneurisation | Docker Compose |Kubernetes | Portabilité et environnement reproductible |
 
-- simplicité de l'interface
+#### Recommandation de conception
 
-### Faiblesses
+- Pour un projet comme Livrai, l'option la plus cohérente est : Java Spring Boot + PostgreSQL + RabbitMQ + Spring Cloud Gateway + Docker + ELK Stack
+- Cette solution s'appuie sur une base technique déjà proche de l'application existante, tout en offrant une architecture plus robuste et scalable
+- Si l'équipe préfère une stack plus légère et orientée JavaScript, une alternative pertinente est : React + NestJS + PostgreSQL + RabbitMQ + Kong + Docker
+- Si l'objectif est de simplifier l'infrastructure dès le départ, une version plus légère peut être : monolithe modulaire avec Spring Boot, puis séparation progressive des services selon la croissance du volume
 
-- bogues d'affichages sur les livraisons passées ( colonne manquante )
-- pas de page d'édition des données personnelles
-- pas de vérification des données saisies ( ex : poids négatif )
-- le refus d'une livraison n'est pas fonctionnel
-- pas de message de confirmation après une action ( création / validation de livraison )
+#### PostgreSQL vs MySQL
 
-## Description technique
+PostgreSQL est mieux adapté à Livrai pour plusieurs raisons fonctionnelles et techniques. 
 
-<!-- 
-Fournissez un diagramme de composants UML.
-Inclure les versions de langages et de frameworks utilisées
- -->
+Le projet repose sur des données transactionnelles, des relations complexes entre utilisateurs, clients, livraisons, factures et historique d'actions. 
 
-### Stack technologique
+PostgreSQL offre une meilleure robustesse pour les contraintes de cohérence, les transactions ACID, les jointures complexes et les requêtes analytiques. Il est également plus adapté à la future évolution du système, notamment si l'organisation décide d'ajouter des données historiques, des rapports métier ou des filtres avancés sur les livraisons et les factures.
 
-| Techno | Version | Rôle |
-| --- | --- | --- | 
-| Java | > 6 | Langage de programmation |
-| JUnit | 4.11 | Framework de tests automatisés |
-| Tomcat | 8.5 | Serveur web |
-| Maven | | Outils de build | 
-| MySQL | 8 | Persistence des données |
+De plus, PostgreSQL offre des fonctionnalités utiles dans un contexte d'audit, notamment la gestion des transactions, les index avancés, les contraintes à la base, la sécurité des accès et une meilleure évolutivité pour les cas d'usage à forte intégrité des données. Pour ce projet, cela correspond mieux aux exigences de fiabilité, de sécurité et de suivi de l'activité métier.
 
-### Diagramme de composants
-<!-- 
-```plantuml
-@startuml
-[navigateur web] as browser
-component Serveur {
-    port "80/443" as port_web
-    database mysql 
-    node tomcat {
-        package Livrai <<war>> as app {
-            [AuthenticationFilter] as auth_filter
-            [Controller] <<servlet>> as cont
-            package DAL {
-                [Abstract DAO] as DAO
-            }
-            [View] <<jsp>> as view
-        }
+### Diagramme entité relation
+
+```mermaid
+erDiagram
+    direction LR
+    USER {
+        bigint id PK
+        varchar email UK
+        varchar password_hash
+        varchar role
+        timestamp created_at
+        timestamp updated_at
     }
-}
 
-DAO -- > mysql
-browser -- > port_web : requete http
-port_web -- > auth_filter
-auth_filter -- > cont
-cont -- > [DAO]
-cont -- > view
-view -- > port_web 
-port_web -- > browser : réponse http
-``` 
--->
+    CUSTOMER {
+        bigint id PK
+        varchar first_name
+        varchar last_name
+        varchar company_name
+        varchar phone
+        text address
+        timestamp created_at
+        timestamp updated_at
+    }
 
-![Diagramme de composants](./img/component_diagram.png)
+    DELIVERY {
+        bigint id PK
+        timestamp delivery_date
+        text pickup_address
+        text delivery_address
+        decimal weight
+        varchar status
+        decimal amount
+        timestamp created_at
+        timestamp updated_at
+    }
 
-### Points forts et déficiences
+    INVOICE {
+        bigint id PK
+        varchar invoice_number UK
+        decimal total_amount
+        varchar status
+        timestamp issued_at
+        timestamp paid_at
+    }
 
-#### Points forts
+    DELIVERY_HISTORY {
+        bigint id PK
+        varchar previous_status
+        varchar new_status
+        text comment
+        timestamp changed_at
+    }
 
-> TODO : préciser pourquoi c'est un point fort  
-> 
-- Architecture MVC en place
-    - Base de code solide pour l'évolution de l'application
-- Worflow d'une livraison défini
-    - Le processus de livraison est clairement défini
-- Utilisation de requête préparées 
-    - Empêche l'injection SQL
-- Utilisation de JSTL 
-    - Empêche les attaques XSS
+    USER ||--o| CUSTOMER : owns
+    USER ||--o{ DELIVERY : creates
+    USER ||--o{ DELIVERY_HISTORY : changes
+    CUSTOMER ||--o{ DELIVERY : requests
+    DELIVERY ||--o{ DELIVERY_HISTORY : tracks
+    DELIVERY ||--o| INVOICE : generates
+    USER ||--o{ INVOICE : issues
+```
 
-#### Déficiences
+<div style="page-break-after: always;"></div>
 
-##### Sécurité
+## Procédure de livraison de l'application avec Docker
 
-Vérification des points du top 10 OWASP 2025
+La livraison de la solution doit être reproductible, sécurisée et facilement réversible. Le principe retenu repose sur des conteneurs Docker pour l'application, la base de données et les composants complémentaires (monitoring, broker si nécessaire).
 
-| Vulnérabilité | Description | CWE | Status | Commentaire | Exemple |
-| --- | --- | --- | --- | --- | --- |
-| [A01:2025](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/) | Broken Access Control | CWE-352: Cross-Site Request Forgery (CSRF) | ❌ | Pas de protection contre les attaques CSRF  | Tous les formulaires |
-| [A04:2025](https://owasp.org/Top10/A04_2025-Cryptographic_Failures/) | Cryptographic Failures | CWE-261: Weak Encoding for Password | ❌ | Absence de hash des mots de passe avant stockage en BDD | `select * from user` |
-| [A06:2025](https://owasp.org/Top10/2025/A06_2025-Insecure_Design/) | Insecure design | CWE-269 Improper Privilege Management | ❌ | Absence d'ACL | Un client peut créer un client en accédant à `/clients`|
-| [A07:2025](https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/) | Authentication Failures | CWE-521: Weak Password Requirements | ❌ | Absence de politique de mot de passe | création d'un user sans mot de passe |
-| [A09:2025](https://owasp.org/Top10/2025/A09_2025-Security_Logging_and_Alerting_Failures/) | Security Logging & Alerting Failures | CWE-778: Insufficient Logging | ❌ | Absence de logs | |
+### Principes de livraison
 
-##### Architecture
+1. Construire une image Docker fiable à partir de la version validée du code
+2. Vérifier la conformité de la build via compilation et tests automatisés
+3. Préparer un fichier de configuration d'environnement avec les variables de secrets
+4. Déployer l'image sur l'environnement cible en mode versionné
+5. Vérifier la santé de l'application avant d'ouvrir le service aux utilisateurs
+6. Conserver l'image et la version déployée pour permettre un rollback rapide
 
-- erreur `java.sql.SQLNonTransientConnectionException: Too many connections` 
-    - A chaque affichage d'une nouvelle page, de nouvelles connexion sont créées. 
-    `show status where variable_name = 'threads_connected'`
-- mot de passe d'accès à la BDD directement dans un fichier versionné
-- pas de protection contre les attaques brute force
-- aucun test automatisé
-- application monolithique
-- pas de pagination des résultats
-- la structure de la BDD ne permet pas de conserver un historique des actions ( date de commande, date de validation ...)
+### Étapes de déploiement
 
-### Analyse des risques
+#### 1. Validation de la version dans la pipeline
 
-#### Matrice des risques
+- La branche cible est validée automatiquement par la CI/CD
+- Le code est compilé, testé et scanné par la pipeline
+- La pipeline génère une image Docker versionnée, par exemple : `livrai:1.2.0`
+- L'image est publiée dans un registre privé ou public (Docker Hub, GitHub Container Registry, Harbor, etc.)
 
-- Probabilité : 
-    1. Très peu probable
-    2. Peu probable
-    3. Possible
-    4. Très probable 
-    5. Avéré
-- Impacts :
-    1. négligeable
-    2. mineure
-    3. modérée
-    4. majeure
-    5. catastrophique
-- Risque = `Probabilité` * `Impact` : 
-    - `< 10` : acceptable, pas de mitigation à prévoir
-    - `< 15` : à observer et à mitiger si une solution simple existe
-    - `>= 15` : à mitiger absolument
+#### 2. Préparation de l'environnement de destination
 
-| Evénement | Probabilité | Impact | Risque |  
-| --- | --- | --- | --- | 
-| Crashs réguliers de l'application | 5 | 5 | 25 |
-| Récupération des mots de passe en BDD | 4 | 5 | 20 | 
-| Régressions fonctionnelles | 3 | 4 | 16 |
-| Saisie / lecture de données incohérentes | 4 | 4 | 16 |
-| Accès à des pages non prévues par les clients | 3 | 5 | 15 |
+- Vérifier la disponibilité du registre d'images
+- Vérifier les variables d'environnement de production
+- Vérifier la présence des secrets et des fichiers de configuration requis
+- Vérifier la compatibilité de la base de données avec la nouvelle version
 
-#### Définition des risques identifiés
+#### 3. Migration de la base de données
 
-##### Crashs réguliers de l'application
+- Vérifier la présence des scripts de migration pour la nouvelle version
+- Sauvegarder la base de données avant la mise à jour
+- Appliquer les migrations SQL dans l'ordre défini par la version cible
+- Vérifier la compatibilité du schéma avec le code de la nouvelle version
+- Contrôler les données existantes afin d'éviter les régressions fonctionnelles
 
-Causes : 
-- Le nombre de connexion croissants à la Base de données de l'application atteindra sa limite et l'application ne sera plus disponible sans intervention
-- L'absence de pagination entrainera des temps de chargement des pages de plus en plus long
-- Absence de logs
-- Architecture monolithique
+#### 4. Déploiement de la nouvelle image
 
-Probabilité : 5
+- Pull de l'image Docker générée par la pipeline
+- Arrêt du conteneur de l'ancienne version
+- Démarrage du conteneur de la nouvelle version avec les variables de production
+- Recréation ou mise à jour des conteneurs dépendants, tels que la base de données ou le broker si nécessaire
 
-- Avec la croissance prévue de l'entreprise, il est certain que cet événement se produise
+#### 5. Vérification post-déploiement
 
-Impacts : 5
+- Contrôler le statut des conteneurs
+- Vérifier la disponibilité de l'API et de l'interface
+- Vérifier l'authentification et les droits d'accès
+- Vérifier l'intégrité de la base de données
+- Contrôler les logs applicatifs et les métriques de performance
 
-- Croissance
-- Disponibilité
-- L'application n'est plus utilisable à cause des lenteurs ou n'a plus accès à la BDD
+### Exemples de commandes Docker
 
-Solutions proposées :
+```bash
+docker pull registry.example.com/livrai:1.2.0
+docker stop livrai-app
+docker rm livrai-app
+docker run -d --name livrai-app -p 8080:8080 --env-file .env registry.example.com/livrai:1.2.0
+docker ps
+docker logs -f livrai-app
+```
 
-- Fermer les connexions à la BDD et / ou utiliser un pool de connexion
-- Paginer l'affichage des listes
-- Ajouter un système de logs applicatif
-- Migrer vers une architecture basée sur une API
+### Recommandations de livraison
 
-##### Récupération des mots de passe en BDD
+- Utiliser un tag versionné pour chaque livraison
+- Déployer avec une stratégie de mise à jour progressive si possible
+- Préserver les secrets hors du dépôt Git
+- Prévoir un plan de rollback avant toute mise en production
 
-Causes : 
+<div style="page-break-after: always;"></div>
 
-- Les mots de passe sont en clair en BDD
-- Les identifiants d'accès à la BDD sont versionné
-- Les formulaires de login ne sont pas sécurisés contre les attaques CSRF
-- Les attaques brute force sont possible
-- Il n'y a aucune vérification de la complexité du mot de passe
-- Absence de logs
+## Procédure de rollback basé sur Docker
 
-Probabilité : 4
+La procédure de rollback doit permettre de remettre rapidement la version précédente en production en cas de défaut fonctionnel, d'erreur de configuration ou de régression de performance.
 
-- Fiabilité
-- N'importe quel personne ayant accès à la BDD de production a accès aux mot de passe de tous les utilisateurs
-- Les hackers potentiels peuvent avoir accès aux identifiants de BDD plus facilement car ils sont versionnés
+### Objectifs du rollback
 
-Impacts : 5
+- rétablir la version stable précédemment déployée
+- limiter l'impact sur les utilisateurs
+- préserver la cohérence de la base de données
+- documenter précisément les étapes de reprise
 
-- Confidentialité
-- Intégrité
-- Non répudiation
-- Impact sur la crédibilité de l'entreprise
-- Amende dû au non respect de l'article 32 du RGPD `Sécurité du traitement`
-- Utilisation frauduleuse de l'application
+### Principe de fonctionnement
 
-Solutions proposées :
+Le rollback repose sur la conservation d'une image stable et de la configuration associée. Chaque version déployée doit être identifiable et facilement restaurable.
 
-- Hasher les mots de passe en BDD
-- Déplacer les identifiants de connexion à la BDD dans un fichier de configuration non versionné
-- Ajouter des tokens sur les formulaires générés coté serveur
-- Mettre en place un délai entre les tentatives de connexion échouées
-- Ajouter une vérification de la complexité du mot de passe
-- Ajouter des logs applicatifs
+### Étapes de rollback
 
-##### Régressions fonctionnelles
+#### 1. Identifier la version précédente
 
-Causes :
+- Lire le dernier tag de version fonctionnelle
+- Vérifier que la version cible a bien été enregistrée localement ou dans un registre d'images
 
-- Absence de tests automatisés
+#### 2. Arrêter la version problématique
 
-Probabilité : 3
+- Arrêter le conteneur de la version déployée actuellement
+- Vérifier la fin des traitements en cours
 
-- Le périmètre fonctionnel de l'application est réduit et réduit la probabilité d'occurence
+#### 3. Rollback de la base de données
 
-Impacts : 4
+- Restaurer la sauvegarde de la base de données correspondant à la version précédente
+- Rejouer uniquement les migrations nécessaires pour remettre le schéma dans un état compatible avec la version rollback
+- Vérifier que les données conservées restent cohérentes avec le code précédent
+- S'assurer qu'il n'y a pas de divergence entre la base restaurée et la version application relancée
 
-- Fiabilité
-- Impact sur la crédibilité de l'entreprise
-- Impact sur la satisfaction utilisateur
+#### 4. Relancer la version antérieure
 
-Solutions proposées :
+- Démarrer le conteneur correspondant à la version précédente
+- Réutiliser la configuration de cette version
+- Vérifier que la base de données est compatible avec cette version
 
-- Ajouter de tests unitaires et fonctionnels
+#### 5. Vérification de reprise
 
-##### Saisie / lecture de données incohérentes
+- Contrôler la page d'accueil
+- Vérifier la connexion et la liste des livraisons
+- Vérifier l'état de la base de données
+- Examiner les logs afin de s'assurer que l'application est stable
 
-Causes :
+### Exemple de rollback Docker
 
-- Absences de messages d'erreurs clairs lors de mauvaises manipulation
-- Absence de vérifications des données
-- Des bogues d'affichages
+```bash
+docker stop livrai-app
+docker rm livrai-app
+docker run -d --name livrai-app -p 8080:8080 --env-file .env livrai:1.1.0
+docker ps
+docker logs -f livrai-app
+```
 
-Probabilité : 4
+### Bonnes pratiques de rollback
 
-- Avec le temps il est certain que cela se produise 
+- Toujours conserver la dernière image valide.
+- Toujours sauvegarder les variables d'environnement avant une mise à jour.
+- Éviter les migrations de base de données incompatibles avec l'ancienne version.
+- Prévoir des scripts de backup de la base de données avant toute mise en production.
+- En cas de migration de schéma, planifier une stratégie de compatibilité ascendante.
 
-Impacts : 3
+### Sécurité du déploiement et du rollback
 
-- Fiabilité
-- Impact sur la crédibilité de l'entreprise
-- Intervention manuelle d'un admin pour modification
-- Impact sur la satisfaction utilisateur
+- Les secrets ne doivent pas être inclus dans les images Docker.
+- Les fichiers de configuration doivent être stockés hors du dépôt.
+- Les services doivent être démarrés avec des droits minimaux.
+- Les logs doivent être centralisés pour faciliter le diagnostic.
+- Des contrôles de santé doivent être mis en place pour mesurer la disponibilité du service.
 
-Solutions proposées
+<div style="page-break-after: always;"></div>
 
-- Ajouter des messages de confirmation après la validation d'une action par l'utilisateur
-- Nettoyer et valider les données fournies
-- Corriger les bogues d'affichages
+## Observabilité et critères de qualité
 
-##### Accès à des pages non prévues par les clients
+L'observabilité constitue un élément clé de cette refonte. Elle permet de mesurer les performances, la stabilité et l'efficacité des composants de l'application avant, pendant et après la mise en production.
 
-Causes :
-- Absence d'ACL
+### 1. Volumétrie cible
 
-Probabilité : 3
-- Un utilisateur curieux / mal intentionné peut facilement deviner une URL existante et y accéder
+La charge cible doit être définie à partir des besoins métier de Livrai et de la croissance attendue. À titre de référence, une architecture de cette taille peut viser :
 
-Impacts : 5
+- entre 50 et 200 transactions par minute sur les processus standards
+- jusqu'à plusieurs centaines de transactions lors des pics d'activité, selon les périodes de livraison
+- un temps moyen de réponse inférieur à 500 ms pour les écrans de consultation
+- un temps moyen de réponse inférieur à 2 s pour les opérations métier plus lourdes, comme la création ou la validation d'une livraison.
 
-- Fiabilité
-- Confidentialité
-- Intégrité
-- Non répudiation
-- Utilisation frauduleuse de l'application
-- Impact sur la satisfaction utilisateur
+Ces seuils doivent être validés à l'aide de tests de charge et adaptés en fonction du nombre réel de clients et du volume de livraisons processed quotidiennement.
 
-Solution proposée :
+Les indicateurs à suivre sont :
 
-- Protéger l'accès aux pages selon le type d'utilisateur
+- nombre de requêtes HTTP par minute
+- temps de réponse moyen et p95
+- nombre d'erreurs HTTP
+- nombre de transactions BDD par seconde
+- taux d'utilisation mémoire et CPU des conteneurs
+
+### 2. Disponibilité
+
+Une cible réaliste pour cette architecture est une disponibilité de 99,5 % à 99,9 %, selon le niveau de criticité du service. Cela correspond à un temps de non-disponibilité acceptable de quelques heures par mois, à condition qu'un plan de reprise rapide soit en place.
+
+Compte tenu du contexte métier, un arrêt du service peut être toléré pendant les fenêtres de maintenance ou pendant les moments de faible activité. En revanche, le service ne doit pas être indisponible pendant les périodes de fortes opérations de livraison. Le temps de redémarrage et le rollback doivent donc être le plus rapides possible.
+
+Les indicateurs associés sont :
+
+- disponibilité globale du service
+- temps moyen de récupération après incident
+- nombre d'incidents de production
+- taux d'erreurs sur les endpoints critiques
+
+### 3. Maintenabilité
+
+La maintenabilité dépend directement de la clarté du code, de la structure applicative et de la qualité des procédures de déploiement. Elle est renforcée par :
+
+- séparation claire des responsabilités entre couche web, services métier et accès aux données
+- logs structurés et centralisés
+- configuration externalisée
+- tests automatiques et pipeline CI/CD
+- versions dockerisées et reproductibles
+- procédures de déploiement et de rollback documentées
+
+Une application facilement maintenable permet de réduire le temps de correction des anomalies, de limiter la dette technique et de faciliter la montée en charge sans réécriture complète du système.
+
+<div style="page-break-after: always;"></div>
+
+## Correction des problèmes identifiés dans l'audit
+
+Les actions de refonte décrites dans ce document ne sont pas seulement techniques : elles répondent directement aux risques recensés dans l'audit.
+
+### Sécurité
+
+- Le hashage des mots de passe permet de corriger le risque de récupération des mots de passe en base de données
+- L'externalisation des secrets de connexion évite la diffusion accidentelle des identifiants de la base de données
+- Les contrôles d'accès et les rôles limitent les accès non prévus, notamment pour les parcours clients et commerciaux
+- La protection contre les attaques CSRF et le bruteforce réduit les risques d'usurpation et d'accès non autorisé
+- Les logs de sécurité et la centralisation des traces permettent de diagnostiquer les incidents et de sécuriser les opérations sensibles
+
+### Stabilité et disponibilité
+
+- La fermeture correcte des connexions JDBC et l'utilisation d'un pool de connexion limitent la saturation de la base de données et évitent l'erreur `Too many connections`
+- Les conteneurs Docker et la procédure de déploiement standardisée rendent la mise en production plus fiable et plus répétable
+- La politique de rollback permet de reprendre rapidement une version stable en cas de régression
+- Le monitoring et les indicateurs de performance permettent de détecter les dérives avant qu'elles ne deviennent critiques
+
+### Qualité fonctionnelle
+
+- La validation des données évite les erreurs de saisie, comme les poids négatifs ou les informations incohérentes
+- Les messages de confirmation et les retours utilisateur réduisent les erreurs de manipulation
+- Le workflow des livraisons devient explicite et contrôlé, ce qui corrige le refus de livraison ou les états incohérents
+- Les tests automatisés permettent d'éviter les régressions fonctionnelles sur les parcours critiques
+
+### Performance et évolutivité
+
+- La pagination des listes réduit les temps de chargement et améliore la navigation sur les grandes quantités de données
+- L'architecture modulaire permet d'isoler les services métier et de mieux supporter la croissance du volume
+- L'utilisation de composants déployés dans des conteneurs facilite la mise à l'échelle et l'ajout de nouvelles capacités sans réécrire l'ensemble de l'application
+
+### Maintenabilité et traçabilité
+
+- Les logs et l'historique des livraisons permettent de suivre les actions et d'intervenir rapidement en cas d'incohérence
+- La séparation des responsabilités, la documentation technique et la procédure de déploiement renforcent la maintenabilité
+- Les outils de CI/CD et de déploiement automatisé réduisent les risques humains et stabilisent les livraisons
+
+En synthèse, la refonte n'est pas seulement une évolution de l'architecture : elle répond directement aux risques et aux défauts relevés dans l'audit et les transforme en leviers de sécurité, de performance, de fiabilité et de maintenance.
+
+<div style="page-break-after: always;"></div>
 
 ## Conclusion
 
-> TODO : répondre aux questions de l'intro
-
-
-1. rempli sa fonction ?
-1. a des bogues ?
-1. est sécurisée ?
-1. est bien concue ?
-1. est scalable ( supporter une grosse volumétrie ) ?
-1. est résiliente ( continuité de service ) ?
-
-L'application 
-
-- rempli sa fonction de suivi de livraison
-- comporte des bogues
-- n'est pas suffisament sécurisée
-    - sécurise l'enregistrement et l'affichage des données
-    - ne hash pas les mots de passes
-    - identifiants d'accès à la BDD versionné
-- a des limites dans sa conception
-    - architecture MVC
-    - workflow clair
-- n'est pas scalable
-- n'est pas résiliente
-
-
-Cependant elle
-
-- n'est pas suffisamment sécurisée
-- ne pourra pas supporter la croissance prévue de l'entreprise
-- n'est et ne pourra pas être hautement disponible
-
-L'application doit évoluer pour suivre la courbe de croissance de l'entreprise.
-De plus des actions sont conseillées par ordre de priorité
-
-- priorité urgente :
-    - hasher les mots de passes
-    - externaliser les mots de passes d'accès à la BDD
-    - corriger les bogues
-- priorité haute :
-    - fermer les connexions à la BDD et / ou utiliser un pool de connexion
-- priorité moyenne :
-    - ajout de tests automatisés
-    - ajout de logs
-- priorité basse :
-    - dockeriser l'application
-    - création d'une pipeline CI/CD
+L'architecture cible proposée permet d'améliorer significativement la sécurité, la disponibilité et l'évolutivité de l'application. L'accent mis sur une livraison Dockerisée et une politique de rollback explicite constitue une réponse adaptée aux risques identifiés lors de l'audit, en limitant les interruptions de service et en renforçant la fiabilité du système.
 

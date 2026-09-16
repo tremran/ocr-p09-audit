@@ -1,22 +1,72 @@
-CREATE DATABASE if not exists livrai;
+CREATE DATABASE IF NOT EXISTS livrai;
+USE livrai;
 
-use livrai;
+DROP TABLE IF EXISTS delivery_history;
+DROP TABLE IF EXISTS invoices;
+DROP TABLE IF EXISTS deliveries;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS users;
 
-CREATE TABLE user (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  name VARCHAR(64) NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  admin BOOLEAN NOT NULL DEFAULT FALSE
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('ADMIN', 'COMMERCIAL', 'LIVRAISON', 'CLIENT') NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE delivery (
-  id INT NOT NULL AUTO_INCREMENT,
-  userId INT NOT NULL,
-  volume INT NOT NULL,
-  weight INT NOT NULL,
-  price DECIMAL(10,2),
-  status VARCHAR(255),
-  PRIMARY KEY (id),
-  FOREIGN KEY (userId) REFERENCES user(id)
+CREATE TABLE customers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    company_name VARCHAR(150) NULL,
+    phone VARCHAR(30) NULL,
+    address TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE deliveries (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    created_by_user_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delivery_date DATETIME NULL,
+    pickup_address TEXT NOT NULL,
+    delivery_address TEXT NOT NULL,
+    weight DECIMAL(10,3) NOT NULL,
+    status ENUM('PENDING', 'ACCEPTED', 'REFUSED', 'INVOICED', 'DELIVERED') NOT NULL DEFAULT 'PENDING',
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_deliveries_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_deliveries_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_delivery_weight CHECK (weight > 0)
+);
+
+CREATE TABLE invoices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    delivery_id BIGINT NOT NULL UNIQUE,
+    issued_by_user_id BIGINT NOT NULL,
+    invoice_number VARCHAR(50) NOT NULL UNIQUE,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status ENUM('DRAFT', 'ISSUED', 'PAID', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
+    issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    paid_at TIMESTAMP NULL,
+    CONSTRAINT fk_invoices_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_invoices_issuer FOREIGN KEY (issued_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE delivery_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    delivery_id BIGINT NOT NULL,
+    changed_by_user_id BIGINT NOT NULL,
+    previous_status VARCHAR(50) NULL,
+    new_status VARCHAR(50) NOT NULL,
+    comment TEXT NULL,
+    changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_history_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE,
+    CONSTRAINT fk_history_user FOREIGN KEY (changed_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 );
