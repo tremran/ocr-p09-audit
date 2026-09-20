@@ -1,5 +1,10 @@
 # Mise en place de l'environnement de développement
 
+## Conception
+
+- [audit](./docs/audit.pdf)
+- [document d'architecture](./docs/doc_architecture.pdf)
+
 ## Scripts SQL disponibles
 
 Les scripts SQL du projet sont dans le dossier `db/` :
