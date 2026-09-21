@@ -306,6 +306,65 @@ Les services principaux seraient :
 
 Cette cible est cohérente avec le contexte de Livrai, car elle reste suffisamment simple pour être mise en place progressivement tout en couvrant les risques de sécurité et de disponibilité relevés lors de l'audit.
 
+### Architecture finale en microservices
+
+L'architecture finale retenue repose sur plusieurs microservices autonomes, chacun responsable d'un domaine métier. Les services communiquent via l'API Gateway pour les requêtes synchrones et via RabbitMQ pour les événements métier asynchrones.
+
+Le principe « une base de données par service » est retenu afin de limiter le couplage entre les domaines et de permettre à chaque service de faire évoluer son modèle de données indépendamment. Les échanges entre services s'effectuent exclusivement par API ou par événements ; aucun service ne doit accéder directement à la base de données d'un autre service.
+
+#### Responsabilités des composants
+
+- **Front App** : interface web responsive destinée aux clients et aux équipes internes
+- **API Gateway** : point d'entrée unique, routage, contrôle des accès et limitation du trafic
+- **Auth Service** : authentification, gestion des rôles, émission et validation des jetons
+- **Customer Service** : comptes clients, profils et informations personnelles
+- **Delivery Service** : création des livraisons, workflow des statuts et historique métier
+- **Billing Service** : génération des factures et suivi de leur état
+- **RabbitMQ** : diffusion des événements tels que `DeliveryCreated`, `DeliveryValidated` et `InvoiceGenerated`
+- **Observability** : centralisation des logs, métriques, traces et alertes
+
+Les opérations nécessitant une réponse immédiate, comme la consultation d'une livraison, utilisent l'API Gateway et les API REST des services concernés. Les opérations pouvant être traitées en différé, comme la génération d'une facture après validation d'une livraison, utilisent RabbitMQ. Cette séparation améliore la résilience et évite de bloquer un parcours utilisateur lorsqu'un traitement secondaire est momentanément indisponible.
+
+#### Diagramme de l'architecture finale
+
+```mermaid
+flowchart LR
+
+    browser["Navigateur web"] --> front["Front App"]
+    front --> gateway["API Gateway"]
+
+    subgraph microServices
+        direction LR
+        subgraph deliveryService
+            direction LR 
+            delivery --> deliverydb[("DB")]
+        end
+
+        subgraph billingService
+            direction LR 
+            billing --> billingdb[("DB")]
+        end
+        subgraph authService
+            direction LR 
+            auth --> authdb[("DB")]
+        end
+        subgraph customerService
+            direction LR 
+            customer --> customerdb[("DB")]
+        end
+    end
+
+    gateway --> microServices
+    microServices -. "événements métier" .-> broker["RabbitMQ"]
+    broker -. "événements métier" .-> microServices
+    broker -. "événements métier" .-> observability["Observability"]
+    microServices 
+
+    microServices -. "logs, métriques, traces" .-> observability
+```
+
+Cette architecture constitue la cible finale. La migration peut toutefois être réalisée progressivement à partir du monolithe existant, en commençant par l'authentification et le domaine livraison, qui concentrent les risques les plus importants.
+
 <div style="page-break-after: always;"></div>
 
 ### Diagramme de composant
